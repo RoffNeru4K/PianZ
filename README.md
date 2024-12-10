@@ -1,1 +1,5 @@
 # PianZ
+
+- JAWA
+- SUNDA
+- NIG
