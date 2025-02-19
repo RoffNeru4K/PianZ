@@ -82,6 +82,21 @@
       const videoContainer = document.getElementById("videoContainer");
       const inputContainer = document.getElementById("inputContainer");
 
+      function extractTitleFromUrl(url) {
+        try {
+          const urlParams = new URLSearchParams(new URL(url).search);
+          const filename = urlParams.get("download_filename");
+
+          if (filename) {
+            // Format nama file menjadi judul yang lebih bagus
+            return filename.replace(/_/g, " ").replace(/\.\w+$/, "").trim();
+          }
+        } catch (e) {
+          console.error("Invalid URL format", e);
+        }
+        return "Page Video Viewer"; // Default title jika tidak ditemukan
+      }
+
       function loadVideo() {
         const url = videoUrlInput.value.trim();
         if (!url) {
@@ -106,6 +121,9 @@
         inputContainer.style.position = "static";
         inputContainer.style.transform = "none";
 
+        // Update title page sesuai dengan URL
+        document.title = extractTitleFromUrl(url);
+
         // Perbarui URL browser dengan query string
         const newUrl =
           window.location.pathname + "?url=" + encodeURIComponent(url);
@@ -118,8 +136,10 @@
       window.addEventListener("load", () => {
         const params = new URLSearchParams(window.location.search);
         const videoUrlParam = params.get("url");
+
         if (videoUrlParam) {
           videoUrlInput.value = decodeURIComponent(videoUrlParam);
+          document.title = extractTitleFromUrl(videoUrlParam);
           loadVideo();
         }
       });
