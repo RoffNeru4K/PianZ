@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page Viewer</title>
+    <style>
+      /* Gaya dasar */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #000;
+        color: #fff;
+      }
+      input,
+      button {
+        margin: 10px;
+        padding: 10px;
+        font-size: 1rem;
+        color: #fff;
+        background-color: #333;
+        border: 1px solid #555;
+      }
+      /* Container untuk gambar, tanpa batasan tinggi agar tidak ada area hitam di bawah */
+      #container {
+        width: 100%;
+        overflow-y: auto;
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin-bottom: 10px;
+      }
+      html,
+      body {
+        overflow-x: hidden;
+      }
+
+      /* Navbar (akan disembunyikan saat gambar ditampilkan) */
+      #navbar {
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      /* Form awal */
+      #formContainer {
+        text-align: center;
+      }
+
+      /* Assistive Touch */
+      #assistiveTouch {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        /* Ukuran awal diatur via JS */
+        background-color: #333;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.5rem;
+        cursor: pointer;
+        z-index: 1000;
+        transition: all 0.3s ease;
+      }
+
+      /* Popup overlay dengan background 32% gelap */
+      #popupOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.32);
+        z-index: 1100;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Popup form */
+      #popupForm {
+        background: #222;
+        border: 1px solid #555;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: #fff;
+      }
+      #popupForm input,
+      #popupForm button {
+        margin: 5px;
+        padding: 10px;
+        font-size: 1rem;
+        color: #fff;
+        background-color: #333;
+        border: 1px solid #555;
+        width: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar (akan disembunyikan saat gambar ditampilkan) -->
+    <h1 id="navbar">Page Image Viewer</h1>
+
+    <!-- Form awal -->
+    <div id="formContainer">
+      <label for="min">Min Page:</label>
+      <input type="number" id="min" placeholder="Min Page" />
+      <label for="max">Max Page:</label>
+      <input type="number" id="max" placeholder="Max Page" />
+      <label for="url">URL Template (use {p}):</label>
+      <input type="text" id="url" placeholder="https://page.com/{p}" />
+      <button id="loadImages">Load Images</button>
+    </div>
+
+    <!-- Container untuk gambar -->
+    <div id="container"></div>
+
+    <!-- Assistive Touch (awal tersembunyi) -->
+    <div id="assistiveTouch" style="display: none;">★</div>
+
+    <!-- Popup overlay dan form -->
+    <div id="popupOverlay">
+      <div id="popupForm">
+        <label for="popupMin">Min Page:</label>
+        <input type="number" id="popupMin" placeholder="Min Page" />
+        <label for="popupMax">Max Page:</label>
+        <input type="number" id="popupMax" placeholder="Max Page" />
+        <label for="popupUrl">URL Template (use {p}):</label>
+        <input type="text" id="popupUrl" placeholder="https://page.com/{p}" />
+        <button id="popupLoadImages">Load Images</button>
+        <button id="closePopup">Close</button>
+      </div>
+    </div>
+
+    <script>
+      let currentPage = 1;
+      let maxPage = 1;
+      const container = document.getElementById("container");
+      const formContainer = document.getElementById("formContainer");
+      const loadImagesBtn = document.getElementById("loadImages");
+      const navbar = document.getElementById("navbar");
+      const assistiveTouch = document.getElementById("assistiveTouch");
+      const popupOverlay = document.getElementById("popupOverlay");
+      const popupForm = document.getElementById("popupForm");
+      const popupLoadImagesBtn = document.getElementById("popupLoadImages");
+      const closePopupBtn = document.getElementById("closePopup");
+
+      let idleTimer;
+      let isDragging = false,
+        offsetX = 0,
+        offsetY = 0;
+
+      // Konstanta ukuran tombol
+      const baseSize = 40; // Ukuran dasar
+      const normalSize = baseSize * 1.015; // Meningkat 1,5% dari baseSize
+      const idleSize = normalSize * 0.985;   // Berkurang 1,5% dari normalSize
+
+      // Atur ukuran awal tombol Assistive Touch
+      assistiveTouch.style.width = normalSize + "px";
+      assistiveTouch.style.height = normalSize + "px";
+
+      // Fungsi load gambar
+      function loadImages(min, max, urlTemplate) {
+        container.innerHTML = "";
+        const hasPlaceholder = urlTemplate.includes("{p}");
+        if (hasPlaceholder) {
+          min = isNaN(min) ? 1 : min;
+          max = isNaN(max) ? min : max;
+          for (let i = min; i <= max; i++) {
+            const imgUrl = urlTemplate.replace("{p}", i);
+            const img = document.createElement("img");
+            img.src = imgUrl;
+            img.loading = "lazy";
+            img.setAttribute("data-page", i);
+            container.appendChild(img);
+          }
+          currentPage = min;
+          maxPage = max;
+        } else {
+          // Jika tidak ada placeholder, load satu gambar
+          const img = document.createElement("img");
+          img.src = urlTemplate;
+          img.loading = "lazy";
+          container.appendChild(img);
+          currentPage = 1;
+          maxPage = 1;
+        }
+        // Perbarui URL dengan query string
+        const newUrl =
+          window.location.pathname +
+          "?min=" +
+          (hasPlaceholder ? min : "") +
+          "&max=" +
+          (hasPlaceholder ? max : "") +
+          "&url=" +
+          encodeURIComponent(urlTemplate);
+        window.history.pushState({}, "", newUrl);
+
+        // Sembunyikan form dan navbar
+        formContainer.style.display = "none";
+        navbar.style.display = "none";
+        assistiveTouch.style.display = "flex";
+        resetIdleTimer();
+      }
+
+      loadImagesBtn.addEventListener("click", () => {
+        const min = parseInt(document.getElementById("min").value);
+        const maxVal = parseInt(document.getElementById("max").value);
+        const urlTemplate = document.getElementById("url").value.trim();
+        if (!urlTemplate) {
+          alert("Please enter a valid URL template.");
+          return;
+        }
+        loadImages(min, maxVal, urlTemplate);
+      });
+
+      // Navigasi gambar dengan klik kanan
+      document.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        if (currentPage < maxPage) {
+          currentPage++;
+          const nextImg = document.querySelector(
+            `img[data-page="${currentPage}"]`
+          );
+          if (nextImg) {
+            window.scrollTo({ top: nextImg.offsetTop, behavior: "smooth" });
+          }
+        }
+      });
+
+      /* --- Dragging Assistive Touch --- */
+      // Mouse (PC)
+      assistiveTouch.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        restoreAssistiveTouch();
+        offsetX = e.clientX - assistiveTouch.getBoundingClientRect().left;
+        offsetY = e.clientY - assistiveTouch.getBoundingClientRect().top;
+        clearTimeout(idleTimer);
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (isDragging) {
+          let x = e.clientX - offsetX;
+          let y = e.clientY - offsetY;
+          x = Math.max(
+            0,
+            Math.min(window.innerWidth - assistiveTouch.offsetWidth, x)
+          );
+          y = Math.max(
+            0,
+            Math.min(window.innerHeight - assistiveTouch.offsetHeight, y)
+          );
+          assistiveTouch.style.left = x + "px";
+          assistiveTouch.style.top = y + "px";
+        }
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (isDragging) {
+          isDragging = false;
+          resetIdleTimer();
+        }
+      });
+
+      // Touch (handphone)
+      assistiveTouch.addEventListener("touchstart", (e) => {
+        isDragging = true;
+        restoreAssistiveTouch();
+        const touch = e.touches[0];
+        offsetX = touch.clientX - assistiveTouch.getBoundingClientRect().left;
+        offsetY = touch.clientY - assistiveTouch.getBoundingClientRect().top;
+        clearTimeout(idleTimer);
+      });
+
+      document.addEventListener("touchmove", (e) => {
+        if (isDragging) {
+          const touch = e.touches[0];
+          let x = touch.clientX - offsetX;
+          let y = touch.clientY - offsetY;
+          x = Math.max(
+            0,
+            Math.min(window.innerWidth - assistiveTouch.offsetWidth, x)
+          );
+          y = Math.max(
+            0,
+            Math.min(window.innerHeight - assistiveTouch.offsetHeight, y)
+          );
+          assistiveTouch.style.left = x + "px";
+          assistiveTouch.style.top = y + "px";
+        }
+      });
+
+      document.addEventListener("touchend", () => {
+        if (isDragging) {
+          isDragging = false;
+          resetIdleTimer();
+        }
+      });
+
+      // Fungsi untuk mengembalikan tombol ke ukuran normal
+      function restoreAssistiveTouch() {
+        assistiveTouch.style.width = normalSize + "px";
+        assistiveTouch.style.height = normalSize + "px";
+        assistiveTouch.style.opacity = "1";
+      }
+
+      // Setelah tidak disentuh selama 3,5 detik, tombol mengecil 1,5% dan menempel di border
+      function resetIdleTimer() {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+          assistiveTouch.style.width = idleSize + "px";
+          assistiveTouch.style.height = idleSize + "px";
+          assistiveTouch.style.opacity = "0.5";
+          const rect = assistiveTouch.getBoundingClientRect();
+          // Snap ke border terdekat: setengah tombol tersembunyi
+          if (rect.left + rect.width / 2 < window.innerWidth / 2) {
+            assistiveTouch.style.left = `-${idleSize / 2}px`;
+            assistiveTouch.style.right = "unset";
+          } else {
+            assistiveTouch.style.right = `-${idleSize / 2}px`;
+            assistiveTouch.style.left = "unset";
+          }
+        }, 3500);
+      }
+
+      // Saat tombol ★ diklik (selama bukan sedang di-drag), tampilkan popup
+      assistiveTouch.addEventListener("click", () => {
+        if (!isDragging) {
+          restoreAssistiveTouch();
+          // Pre-fill popup jika ada query string
+          const params = new URLSearchParams(window.location.search);
+          const currentUrl = params.get("url") || "";
+          const currentMin = params.get("min") || "";
+          const currentMax = params.get("max") || "";
+          document.getElementById("popupUrl").value =
+            decodeURIComponent(currentUrl);
+          document.getElementById("popupMin").value = currentMin;
+          document.getElementById("popupMax").value = currentMax;
+          showPopup();
+          clearTimeout(idleTimer);
+        }
+      });
+
+      function showPopup() {
+        popupOverlay.style.display = "flex";
+      }
+
+      function hidePopup() {
+        popupOverlay.style.display = "none";
+        resetIdleTimer();
+      }
+
+      // Tombol load pada popup
+      popupLoadImagesBtn.addEventListener("click", () => {
+        const min = parseInt(document.getElementById("popupMin").value);
+        const maxVal = parseInt(document.getElementById("popupMax").value);
+        const urlTemplate = document.getElementById("popupUrl").value.trim();
+        if (!urlTemplate) {
+          alert("Please enter a valid URL template.");
+          return;
+        }
+        hidePopup();
+        loadImages(min, maxVal, urlTemplate);
+      });
+
+      // Tombol close pada popup
+      closePopupBtn.addEventListener("click", () => {
+        hidePopup();
+      });
+
+      // Klik di luar popup (pada overlay) juga menutup popup
+      popupOverlay.addEventListener("click", (e) => {
+        if (e.target === popupOverlay) {
+          hidePopup();
+        }
+      });
+
+      // Auto-load gambar jika ada query string
+      window.addEventListener("load", () => {
+        const params = new URLSearchParams(window.location.search);
+        const urlParam = params.get("url");
+        if (urlParam) {
+          const minParam = params.get("min");
+          const maxParam = params.get("max");
+          loadImages(
+            parseInt(minParam),
+            parseInt(maxParam),
+            decodeURIComponent(urlParam)
+          );
+        }
+        // Register service worker (jika tersedia)
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((registration) => {
+              console.log("ServiceWorker registered: ", registration);
+            })
+            .catch((error) => {
+              console.log("ServiceWorker registration failed: ", error);
+            });
+        }
+      });
+    </script>
+  </body>
+</html>

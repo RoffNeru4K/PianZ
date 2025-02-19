@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page Video Viewer</title>
+    <style>
+      /* Gaya dasar */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #000;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+
+      /* Navbar */
+      #navbar {
+        text-align: center;
+        position: absolute;
+        top: 10px;
+      }
+
+      /* Container input awal (tengah layar) */
+      #inputContainer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      #inputContainer input,
+      #inputContainer button {
+        margin: 5px;
+        padding: 10px;
+        font-size: 1rem;
+        color: #fff;
+        background-color: #333;
+        border: 1px solid #555;
+      }
+
+      /* Container video */
+      #videoContainer {
+        display: none;
+        justify-content: center;
+        width: 100%;
+      }
+
+      #videoContainer video {
+        max-width: 90%;
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <h1 id="navbar">Page Video Viewer</h1>
+
+    <!-- Container input (awal muncul di tengah layar) -->
+    <div id="inputContainer">
+      <input
+        type="text"
+        id="videoUrl"
+        placeholder="Enter video URL (e.g. https://...)"
+      />
+      <button id="loadVideo">Load Video</button>
+    </div>
+
+    <!-- Container untuk video (awal tersembunyi) -->
+    <div id="videoContainer"></div>
+
+    <script>
+      const loadVideoButton = document.getElementById("loadVideo");
+      const videoUrlInput = document.getElementById("videoUrl");
+      const videoContainer = document.getElementById("videoContainer");
+      const inputContainer = document.getElementById("inputContainer");
+
+      function loadVideo() {
+        const url = videoUrlInput.value.trim();
+        if (!url) {
+          alert("Please enter a video URL.");
+          return;
+        }
+
+        // Bersihkan video yang sudah ada
+        videoContainer.innerHTML = "";
+        // Buat elemen video
+        const videoEl = document.createElement("video");
+        videoEl.src = url;
+        videoEl.controls = true;
+        videoEl.autoplay = true;
+
+        // Tambahkan video ke container
+        videoContainer.appendChild(videoEl);
+        videoContainer.style.display = "flex";
+
+        // Pindahkan inputContainer ke bawah video
+        videoContainer.insertAdjacentElement("afterend", inputContainer);
+        inputContainer.style.position = "static";
+        inputContainer.style.transform = "none";
+
+        // Perbarui URL browser dengan query string
+        const newUrl =
+          window.location.pathname + "?url=" + encodeURIComponent(url);
+        window.history.pushState({}, "", newUrl);
+      }
+
+      loadVideoButton.addEventListener("click", loadVideo);
+
+      // Jika terdapat query parameter 'url', load video secara otomatis
+      window.addEventListener("load", () => {
+        const params = new URLSearchParams(window.location.search);
+        const videoUrlParam = params.get("url");
+        if (videoUrlParam) {
+          videoUrlInput.value = decodeURIComponent(videoUrlParam);
+          loadVideo();
+        }
+      });
+    </script>
+  </body>
+</html>
