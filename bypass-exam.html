@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bypass Exambroo</title>
+    <style>
+        /* Efek latar berkedip */
+        @keyframes flashBackground {
+            0% { background-color: #121212; }
+            25% { background-color: #ff0000; }
+            50% { background-color: #00ff00; }
+            75% { background-color: #ffffff; }
+            100% { background-color: #121212; }
+        }
+
+        /* Efek teks berkedip dan bergetar */
+        @keyframes flicker {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes shake {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-3px, 3px); }
+            50% { transform: translate(3px, -3px); }
+            75% { transform: translate(-3px, 3px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        /* Gaya utama */
+        body {
+            font-family: "Courier New", monospace;
+            text-align: center;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            color: #FFFFFF;
+            animation: flashBackground 0.1s infinite;
+        }
+
+        h1 {
+            color: #00FF00;
+            text-shadow: 0 0 10px #00FF00;
+            animation: flicker 1s infinite, shake 0.1s infinite;
+        }
+
+        .console {
+            background: #1e1e1e;
+            padding: 20px 30px;
+            border: 1px solid #333;
+            box-shadow: 0 0 10px #00FF00;
+            text-align: center;
+            animation: shake 0.1s infinite;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-family: "Courier New", monospace;
+            color: #fff;
+            background-color: #ff0000;
+            border: 2px solid #00FF00;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        button:hover {
+            background-color: #00FF00;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="console">
+        <h1>Bypass Exambroo</h1>
+        <p>Memulai prosedur bypass sistem dengan efek distrak...</p>
+        <button onclick="redirect()">Mulai Bypass</button>
+    </div>
+
+    <script>
+        function redirect() {
+            window.location.href = "http://pianz.xyz";
+        }
+    </script>
+</body>
+</html>
